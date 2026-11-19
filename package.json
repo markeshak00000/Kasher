@@ -10,7 +10,7 @@
     "build:win": "electron-builder --win nsis --ia32 --publish never"
   },
   "devDependencies": {
-    "electron": "^28.0.0",
+    "electron": "22.3.27",
     "electron-builder": "^24.9.1"
   },
   "build": {
@@ -21,13 +21,11 @@
       "output": "dist"
     },
     "files": [
-      "**/*",
-      "!**/.git/**",
-      "!**/.github/**",
-      "!dist/**",
-      "!**/dist/**"
+      "index.html",
+      "main.js",
+      "package.json"
     ],
-    "artifactName": "${productName}-Setup-${version}-32bit.${ext}",
+    "artifactName": "Kasher-Windows7-x86-Setup-${version}.${ext}",
     "publish": null,
     "win": {
       "target": [
