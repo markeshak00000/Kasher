@@ -1,0 +1,89 @@
+
+name: Build Kasher Windows 32-bit Installer
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Kasher Windows x86 (32-bit)
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Check environment
+        shell: pwsh
+        run: |
+          node --version
+          npm --version
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          npm install --no-audit --no-fund --no-progress --fetch-retries=5 --fetch-retry-factor=2 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000
+        timeout-minutes: 30
+
+      - name: Verify build configuration
+        shell: pwsh
+        run: |
+          $package = Get-Content "package.json" -Raw | ConvertFrom-Json
+
+          if ($package.build.win.target[0].arch -notcontains "ia32") {
+            throw "Build configuration error: ia32 architecture is missing."
+          }
+
+          if ($package.scripts.'build:win' -notmatch '--ia32') {
+            throw "Build command error: --ia32 flag is missing."
+          }
+
+          Write-Host "32-bit architecture configuration verified."
+
+      - name: Build Windows 32-bit installer
+        shell: pwsh
+        run: |
+          npm run build:win
+        timeout-minutes: 30
+
+      - name: Verify installer
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist")) {
+            throw "Build failed: dist folder was not created."
+          }
+
+          $files = @(Get-ChildItem "dist" -Filter "*.exe" -File)
+
+          if ($files.Count -eq 0) {
+            Get-ChildItem "dist" -Force
+            throw "Build failed: No EXE installer found."
+          }
+
+          Write-Host "32-BIT BUILD SUCCESSFUL"
+          $files | Format-Table Name, Length
+
+      - name: Upload Windows 32-bit Installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: Kasher-Windows-32bit-x86
+          path: dist/*.exe
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
